@@ -18,6 +18,7 @@
 	"refreshToken": "",
 	"accessToken": "",
 	"ntfyChannel": "",
+	"AntiCaptchaToken": "",
 	"filterForWarehouse": true,
 	"stopRunAt": false,
 	"startRunAt": false,
