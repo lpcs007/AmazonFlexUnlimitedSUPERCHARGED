@@ -42,7 +42,7 @@ Set "retryLimit" to 0 in config.json to make the script run infinitely.
 It only exits if it encounters a CAPTCHA.
 
 ## Detect CAPTCHA
-Starting 2023, Amazon now asks suspected bot-users to confirm that they are human through completing a CAPTCHA in the Flex app. If the script encounters this, it will send you an ntfy notification and exit the script entirely.
+Starting 2023, Amazon now asks suspected bot-users to confirm that they are human through completing a CAPTCHA in the Flex app. If the script encounters this, it will send the request to Anti-Captcha to solve and then try grab the block automatically. You need to create an account on [anti-captcha.com](http://getcaptchasolution.com/hlea5kofup).
 
 ## Randomized refresh interval
 "refreshInterval" in config.js has been split into two:
