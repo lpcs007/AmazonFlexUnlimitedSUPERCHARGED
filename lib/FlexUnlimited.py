@@ -108,6 +108,8 @@ class FlexUnlimited:
         self.started = 0
         self.rateLimit = config['rateLimit']
 
+        self.AntiCaptchaToken = config["AntiCaptchaToken"]
+
     except KeyError as nullKey:
       Log.error(f'{nullKey} was not set. Please setup FlexUnlimited as described in the README.', self)
       sys.exit()
@@ -433,8 +435,35 @@ class FlexUnlimited:
           body=offer.toString())
       Log.success(f"Successfully accepted an offer.", self)
     elif request.status_code == 307:
-        Log.error("Please open Amazon Flex app, accept offer, and complete captcha to proceed.", self)
-        exit()
+      Log.notice("Trying bypass captcha.", self)
+
+      solver = antigateTask()
+      solver.set_verbose(1)
+      solver.set_key(self.AntiCaptchaToken)
+      solver.set_website_url("https://www.amazon.com/aaut/verify/flex-offers/challenge?challengeType=ARKOSE_LEVEL_2&returnTo=https://www.amazon.com&headerFooter=false")
+      solver.set_template_name("Amazon uniqueValidationId")
+      solver.set_variables({})
+
+      result  = solver.solve_and_return_solution()
+      if result != 0:
+          requests.get(result["url"], cookies=result["cookies"])
+
+          parsed_url = urlparse(result["url"])
+          query_params = parse_qs(parsed_url.query)
+          session_token = query_params.get('sessionToken', [None])[0]
+          decoded_session_token = unquote(session_token)
+
+          payload = json.dumps({
+              'challengeToken': decoded_session_token
+          })
+          requests.request("POST", "https://flex-capacity-na.amazon.com/ValidateChallenge", headers=self.__requestHeaders, data=payload)
+
+          Log.notice("Captcha passed!", self)
+
+          self.__acceptOffer(offer)
+      else:
+          Log.error(f"Task finished with error {solver.error_code}", self)
+          time.sleep( 120 )
     else:
       Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
 
