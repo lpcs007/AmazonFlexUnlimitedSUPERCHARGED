@@ -10,6 +10,7 @@ import pyaes
 from pbkdf2 import PBKDF2
 import random
 from os.path import exists
+from anticaptchaofficial.antigatetask import *
 
 try:
   from twilio.rest import Client
