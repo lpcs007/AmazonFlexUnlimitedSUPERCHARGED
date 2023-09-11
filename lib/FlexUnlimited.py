@@ -436,6 +436,12 @@ class FlexUnlimited:
           body=offer.toString())
       Log.success(f"Successfully accepted an offer.", self)
     elif request.status_code == 307:
+      self.__solveCaptcha()
+      self.__acceptOffer(offer)
+    else:
+      Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
+
+  def __solveCaptcha(self):
       Log.notice("Trying bypass captcha.", self)
 
       solver = antigateTask()
@@ -462,10 +468,6 @@ class FlexUnlimited:
           Log.notice("Captcha passed!", self)
       else:
           Log.error(f"Task finished with error {solver.error_code}", self)
-
-      self.__acceptOffer(offer)
-    else:
-      Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
 
   def __processOffer(self, offer: Offer):
     if offer.hidden:
@@ -546,8 +548,7 @@ class FlexUnlimited:
           self.__rate_limit_number = 1
         Log.notice("Resuming search.", self)
       elif offersResponse.status_code == 307:
-          Log.error("Please open Amazon Flex app, accept offer, and complete captcha to proceed.", self)
-          exit()
+          self.__solveCaptcha()
       else:
         Log.error(offersResponse.json(), self)
         break
