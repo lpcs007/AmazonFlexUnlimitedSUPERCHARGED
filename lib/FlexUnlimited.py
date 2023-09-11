@@ -460,11 +460,10 @@ class FlexUnlimited:
           requests.request("POST", "https://flex-capacity-na.amazon.com/ValidateChallenge", headers=self.__requestHeaders, data=payload)
 
           Log.notice("Captcha passed!", self)
-
-          self.__acceptOffer(offer)
       else:
           Log.error(f"Task finished with error {solver.error_code}", self)
-          time.sleep( 120 )
+
+      self.__acceptOffer(offer)
     else:
       Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
 
