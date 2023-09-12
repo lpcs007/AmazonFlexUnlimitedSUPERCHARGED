@@ -110,6 +110,7 @@ class FlexUnlimited:
         self.rateLimit = config['rateLimit']
 
         self.AntiCaptchaToken = config["AntiCaptchaToken"]
+        self.lastRunSolveCaptcha = None
 
     except KeyError as nullKey:
       Log.error(f'{nullKey} was not set. Please setup FlexUnlimited as described in the README.', self)
@@ -400,6 +401,7 @@ class FlexUnlimited:
     Returns:
     Offers response object
     """
+
     response = self.session.post(
       FlexUnlimited.routes.get("GetOffers"),
       headers=self.__requestHeaders,
@@ -439,7 +441,7 @@ class FlexUnlimited:
       self.__solveCaptcha()
       self.__acceptOffer(offer)
     else:
-      Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
+     Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
 
   def __solveCaptcha(self):
       Log.notice("Trying bypass captcha.", self)
@@ -451,8 +453,25 @@ class FlexUnlimited:
       solver.set_template_name("Amazon uniqueValidationId")
       solver.set_variables({})
 
+      balance = solver.get_balance()
+
+      if balance < 0.10:
+        Log.error(f"Anti-Captcha balance is {balance}", self)
+
+        if balance <= 0:
+          exit()
+
       result  = solver.solve_and_return_solution()
       if result != 0:
+          reportHeader = {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+          }
+          reportData = json.dumps({
+            "clientKey": self.AntiCaptchaToken,
+            "taskId": solver.get_taskId()
+          })
+      
           requests.get(result["url"], cookies=result["cookies"])
 
           parsed_url = urlparse(result["url"])
@@ -463,9 +482,16 @@ class FlexUnlimited:
           payload = json.dumps({
               'challengeToken': decoded_session_token
           })
-          requests.request("POST", "https://flex-capacity-na.amazon.com/ValidateChallenge", headers=self.__requestHeaders, data=payload)
+          ValidateChallenge = requests.request("POST", "https://flex-capacity-na.amazon.com/ValidateChallenge", headers=self.__requestHeaders, data=payload)
 
-          Log.notice("Captcha passed!", self)
+          if ValidateChallenge.status_code == 200:
+            requests.request("POST", "https://api.anti-captcha.com/reportCorrectRecaptcha", headers=reportHeader, data=reportData)
+            self.lastRunSolveCaptcha = datetime.now()
+            Log.notice("Captcha passed!", self)
+          else:
+            requests.request("POST", "https://api.anti-captcha.com/reportIncorrectRecaptcha", headers=reportHeader, data=reportData)
+            self.__solveCaptcha()
+
       else:
           Log.error(f"Task finished with error {solver.error_code}", self)
 
@@ -548,7 +574,7 @@ class FlexUnlimited:
           self.__rate_limit_number = 1
         Log.notice("Resuming search.", self)
       elif offersResponse.status_code == 307:
-          self.__solveCaptcha()
+        self.__solveCaptcha()
       else:
         Log.error(offersResponse.json(), self)
         break
