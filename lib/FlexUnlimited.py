@@ -402,6 +402,14 @@ class FlexUnlimited:
     Offers response object
     """
 
+    # if self.lastRunSolveCaptcha is None:
+    #   self.__solveCaptcha()
+    # else:
+    #   time_difference = datetime.now() - self.lastRunSolveCaptcha
+
+    #   if time_difference.total_seconds() > 600:
+    #     self.__solveCaptcha()
+    self.__solveCaptcha()
     response = self.session.post(
       FlexUnlimited.routes.get("GetOffers"),
       headers=self.__requestHeaders,
@@ -440,8 +448,8 @@ class FlexUnlimited:
     elif request.status_code == 307:
       self.__solveCaptcha()
       self.__acceptOffer(offer)
-    else:
-     Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
+    # else:
+     # Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
 
   def __solveCaptcha(self):
       Log.notice("Trying bypass captcha.", self)
@@ -463,15 +471,6 @@ class FlexUnlimited:
 
       result  = solver.solve_and_return_solution()
       if result != 0:
-          reportHeader = {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-          }
-          reportData = json.dumps({
-            "clientKey": self.AntiCaptchaToken,
-            "taskId": solver.get_taskId()
-          })
-      
           requests.get(result["url"], cookies=result["cookies"])
 
           parsed_url = urlparse(result["url"])
@@ -485,11 +484,12 @@ class FlexUnlimited:
           ValidateChallenge = requests.request("POST", "https://flex-capacity-na.amazon.com/ValidateChallenge", headers=self.__requestHeaders, data=payload)
 
           if ValidateChallenge.status_code == 200:
-            requests.request("POST", "https://api.anti-captcha.com/reportCorrectRecaptcha", headers=reportHeader, data=reportData)
-            self.lastRunSolveCaptcha = datetime.now()
             Log.notice("Captcha passed!", self)
+            solver.report_correct_recaptcha()
+            self.lastRunSolveCaptcha = datetime.now()
           else:
-            requests.request("POST", "https://api.anti-captcha.com/reportIncorrectRecaptcha", headers=reportHeader, data=reportData)
+            Log.error("Reporting incorrect captcha.", self)
+            solver.report_incorrect_recaptcha()
             self.__solveCaptcha()
 
       else:
@@ -558,8 +558,8 @@ class FlexUnlimited:
                            reverse=True)
         for offer in currentOffers:
           offerResponseObject = Offer(offerResponseObject=offer)
-          Log.notice("Found the following offer (now sleeping " + str (round(sleeptime, 2)) + "s):", self)
-          Log.notice(offerResponseObject.toString(), self)
+          # Log.notice("Found the following offer (now sleeping " + str (round(sleeptime, 2)) + "s):", self)
+          # Log.notice(offerResponseObject.toString(), self)
           self.__processOffer(offerResponseObject)
         self.__retryCount += 1
         if(len(currentOffers) == 0):
