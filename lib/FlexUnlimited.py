@@ -409,7 +409,6 @@ class FlexUnlimited:
 
     #   if time_difference.total_seconds() > 600:
     #     self.__solveCaptcha()
-    self.__solveCaptcha()
     response = self.session.post(
       FlexUnlimited.routes.get("GetOffers"),
       headers=self.__requestHeaders,
