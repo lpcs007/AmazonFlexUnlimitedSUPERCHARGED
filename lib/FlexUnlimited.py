@@ -401,14 +401,6 @@ class FlexUnlimited:
     Returns:
     Offers response object
     """
-
-    # if self.lastRunSolveCaptcha is None:
-    #   self.__solveCaptcha()
-    # else:
-    #   time_difference = datetime.now() - self.lastRunSolveCaptcha
-
-    #   if time_difference.total_seconds() > 600:
-    #     self.__solveCaptcha()
     response = self.session.post(
       FlexUnlimited.routes.get("GetOffers"),
       headers=self.__requestHeaders,
@@ -447,8 +439,8 @@ class FlexUnlimited:
     elif request.status_code == 307:
       self.__solveCaptcha()
       self.__acceptOffer(offer)
-    # else:
-     # Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
+    else:
+      Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
 
   def __solveCaptcha(self):
       Log.notice("Trying bypass captcha.", self)
@@ -557,8 +549,8 @@ class FlexUnlimited:
                            reverse=True)
         for offer in currentOffers:
           offerResponseObject = Offer(offerResponseObject=offer)
-          # Log.notice("Found the following offer (now sleeping " + str (round(sleeptime, 2)) + "s):", self)
-          # Log.notice(offerResponseObject.toString(), self)
+          Log.notice("Found the following offer (now sleeping " + str (round(sleeptime, 2)) + "s):", self)
+          Log.notice(offerResponseObject.toString(), self)
           self.__processOffer(offerResponseObject)
         self.__retryCount += 1
         if(len(currentOffers) == 0):
