@@ -110,7 +110,6 @@ class FlexUnlimited:
         self.rateLimit = config['rateLimit']
 
         self.AntiCaptchaToken = config["AntiCaptchaToken"]
-        self.lastRunSolveCaptcha = None
 
     except KeyError as nullKey:
       Log.error(f'{nullKey} was not set. Please setup FlexUnlimited as described in the README.', self)
@@ -436,12 +435,13 @@ class FlexUnlimited:
           from_=self.twilioFromNumber,
           body=offer.toString())
       Log.success(f"Successfully accepted an offer.", self)
+      self.__solveCaptcha()
     elif request.status_code == 307:
       self.__solveCaptcha()
-      self.__acceptOffer(offer)
     else:
       Log.error(f"Unable to accept an offer. Request returned status code {request.status_code}", self)
-
+      self.__solveCaptcha()
+    
   def __solveCaptcha(self):
       Log.notice("Trying bypass captcha.", self)
 
@@ -462,8 +462,7 @@ class FlexUnlimited:
 
       result  = solver.solve_and_return_solution()
       if result != 0:
-          requests.get(result["url"], cookies=result["cookies"])
-
+          
           parsed_url = urlparse(result["url"])
           query_params = parse_qs(parsed_url.query)
           session_token = query_params.get('sessionToken', [None])[0]
@@ -477,7 +476,6 @@ class FlexUnlimited:
           if ValidateChallenge.status_code == 200:
             Log.notice("Captcha passed!", self)
             solver.report_correct_recaptcha()
-            self.lastRunSolveCaptcha = datetime.now()
           else:
             Log.error("Reporting incorrect captcha.", self)
             solver.report_incorrect_recaptcha()
